@@ -32,6 +32,6 @@ details = rows.collect do |row, index|
     detail
 end
 
-File.open("temp.json","w") do |f|
+File.open("/tmp/results/mhmellih16.json","w") do |f|
   f.write(JSON.pretty_generate(details))
 end
