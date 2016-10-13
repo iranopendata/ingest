@@ -5,22 +5,18 @@ require 'csv'
 
 agent = Mechanize.new
 
-
-# osts = [3,4,24,10,32,16,18,23,14,30,9,29,6,19,20,11,7,26,25,27,2,15,1,28,22,13,21,12,8,5,17]
-osts = [32]
-
-page = agent.get('http://avab.behdasht.gov.ir/hospital/')
-form = page.form('form1')
-c = form.field_with(:id => 'popOstId').options.count
+main_page = agent.get('http://avab.behdasht.gov.ir/hospital/')
+main_form = main_page.form('form1')
+c = main_form.field_with(:id => 'popOstId').options.count
 
 all = []
 for i in 1..(c - 1) do
-	form = page.form('form1')
-	s = form.field_with(:id => 'popOstId').options[i]
-	puts s.text
+	ost_select = main_form.field_with(:id => 'popOstId').options[i]
+	ost_select.select
+	puts ost_select.text
 
-	s.select
-	page = agent.submit(form)
+	page = agent.submit(main_form)
+	form = page.form('form1')
 
 	doc = Nokogiri::HTML(page.body)
 	doc.encoding = 'utf-8'
@@ -39,6 +35,33 @@ for i in 1..(c - 1) do
 	    ].each do |name, xpath|
 		    detail[name] = row.at_xpath(xpath).to_s.strip
 		  end
+
+			inner_button_name = row.at_xpath('td[1]/font/input/@name').to_s.strip
+
+			page = agent.submit(main_form)
+			form = page.form('form1')
+			button = form.button_with(:name => inner_button_name)
+			inner_page = agent.click(button)
+
+			inner_form = inner_page.form('form1')
+			inner_doc = Nokogiri::HTML(inner_page.body)
+			inner_doc.encoding = 'utf-8'
+
+			[
+				[:soc_id, "//*[@id='lblSocId']/text()"],
+				[:hsp_type, "//*[@id='lblHspType']/text()"],
+				[:bed_count, "//*[@id='lblBedCount']/text()"],
+				[:spc_type, "//*[@id='lblSpcType']/text()"],
+				[:ward1, "//*[@id='lblWard1']/text()"],
+				[:ward2, "//*[@id='lblWard2']/text()"],
+				[:ward3, "//*[@id='lblWard3']/text()"],
+				[:ward4, "//*[@id='lblWard3']/text()"],
+				[:email, "//*[@id='hlWebSite']/text()"],
+			].each do |name, xpath|
+				detail[name] = inner_doc.at_xpath(xpath).to_s.strip
+			end
+			puts detail[:name]
+
 	    detail
 	end
 
@@ -48,7 +71,3 @@ end
 CSV.open("/tmp/results/mhmellih16.csv", "wb") do |csv|
 	all.each {|elem| csv << elem.values }
 end
-
-# File.open("/tmp/results/mhmellih16.json","w") do |f|
-#   f.write(JSON.pretty_generate(details))
-# end
