@@ -47,7 +47,7 @@ cities.each do |city|
       mosque_page = agent.get("http://www.tebyan-masajed.ir/Modules/#{row.to_h['href']}")
     rescue
       errors << row.to_h['href']
-      continue
+      next
     end
     mosque_page.encoding = 'utf-8'
 
