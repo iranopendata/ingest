@@ -26,14 +26,16 @@ for i in 1..(c - 1) do
 
   cc = form.field_with(:id => 'ParentID1').options
 
-  cc.each {|c| p c.text}
 
   cc.each {|c| cities << {state: state_select.text, city: c.text, code: c.value} unless c.value == '0'}
 
 end
 
 all = []
+error =[]
+
 cities.each do |city|
+  p city[:city]
   city_page = agent.get("http://www.tebyan-masajed.ir/Modules/ShowmasajedInCity.aspx?CityId=#{city[:code]}")
 
   doc = Nokogiri::HTML(city_page.body)
@@ -41,12 +43,19 @@ cities.each do |city|
   rows = doc.xpath('//table[@dir="rtl"]/tr/td/a')
 
   rows.each do |row|
-    mosque_page = agent.get("http://www.tebyan-masajed.ir/Modules/#{row.to_h['href']}")
+    begin
+      mosque_page = agent.get("http://www.tebyan-masajed.ir/Modules/#{row.to_h['href']}")
+    rescue
+      error << row.to_h['href']
+      continue
+    end
     mosque_page.encoding = 'utf-8'
 
     name = mosque_page.title.gsub('پورتال', '').strip
 
     detail = {state: city[:state], city: city[:city], name: name, code: row.to_h['href'].gsub('index.aspx?RegionId=', '')}
+
+    p detail[:name]
 
     all << detail
 
@@ -58,4 +67,8 @@ p all
 
 CSV.open("/tmp/results/tcicpo168.csv", "wb") do |csv|
 	all.each {|elem| csv << elem.values }
+end
+
+CSV.open("/tmp/results/tcicpo168.error.log", "wb") do |csv|
+	errors.each {|elem| csv << elem.values }
 end
