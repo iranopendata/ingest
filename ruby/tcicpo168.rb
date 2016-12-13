@@ -32,10 +32,10 @@ for i in 1..(c - 1) do
 end
 
 all = []
-error =[]
+errors =[]
 
 cities.each do |city|
-  p city[:city]
+  puts city[:city]
   city_page = agent.get("http://www.tebyan-masajed.ir/Modules/ShowmasajedInCity.aspx?CityId=#{city[:code]}")
 
   doc = Nokogiri::HTML(city_page.body)
@@ -46,7 +46,7 @@ cities.each do |city|
     begin
       mosque_page = agent.get("http://www.tebyan-masajed.ir/Modules/#{row.to_h['href']}")
     rescue
-      error << row.to_h['href']
+      errors << row.to_h['href']
       continue
     end
     mosque_page.encoding = 'utf-8'
@@ -55,15 +55,13 @@ cities.each do |city|
 
     detail = {state: city[:state], city: city[:city], name: name, code: row.to_h['href'].gsub('index.aspx?RegionId=', '')}
 
-    p detail[:name]
+    puts detail[:name]
 
     all << detail
 
   end
 
 end
-
-p all
 
 CSV.open("/tmp/results/tcicpo168.csv", "wb") do |csv|
 	all.each {|elem| csv << elem.values }
