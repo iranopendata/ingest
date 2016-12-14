@@ -4,7 +4,10 @@ require 'json'
 require 'csv'
 require 'logger'
 
-agent = Mechanize.new
+agent = Mechanize.new { |agent|
+  agent.open_timeout   = 15
+  agent.read_timeout   = 15
+}
 # agent.log = Logger.new(STDOUT)
 
 # retirive city codes
@@ -31,10 +34,11 @@ for i in 1..(c - 1) do
 
 end
 
-all = []
-errors =[]
 
 cities.each do |city|
+  all = []
+  errors =[]
+
   puts city[:city]
   city_page = agent.get("http://www.tebyan-masajed.ir/Modules/ShowmasajedInCity.aspx?CityId=#{city[:code]}")
 
@@ -61,12 +65,12 @@ cities.each do |city|
 
   end
 
-end
+  CSV.open("/tmp/results/tcicpo168.csv", "a+") do |csv|
+  	all.each {|elem| csv << elem.values }
+  end
 
-CSV.open("/tmp/results/tcicpo168.csv", "wb") do |csv|
-	all.each {|elem| csv << elem.values }
-end
+  CSV.open("/tmp/results/tcicpo168.error.log", "a+") do |csv|
+  	errors.each {|elem| csv << elem.values }
+  end
 
-CSV.open("/tmp/results/tcicpo168.error.log", "wb") do |csv|
-	errors.each {|elem| csv << elem.values }
 end
