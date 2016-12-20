@@ -10,8 +10,8 @@ agent = Mechanize.new { |agent|
 }
 # agent.log = Logger.new(STDOUT)
 
-# root = "/tmp/results"
-root = "/Users/babak/Development/Source/smallmedia/tmp"
+root = "/tmp/results"
+# root = "/Users/babak/Development/Source/smallmedia/tmp"
 
 # retirive city codes
 search_page = agent.get('http://www.tebyan-masajed.ir/')
