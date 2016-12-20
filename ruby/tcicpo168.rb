@@ -10,6 +10,9 @@ agent = Mechanize.new { |agent|
 }
 # agent.log = Logger.new(STDOUT)
 
+# root = "/tmp/results"
+root = "/Users/babak/Development/Source/smallmedia/tmp"
+
 # retirive city codes
 search_page = agent.get('http://www.tebyan-masajed.ir/')
 
@@ -36,41 +39,47 @@ end
 
 
 cities.each do |city|
-  all = []
-  errors =[]
+  begin
+    all = []
+    errors =[]
 
-  puts city[:city]
-  city_page = agent.get("http://www.tebyan-masajed.ir/Modules/ShowmasajedInCity.aspx?CityId=#{city[:code]}")
+    puts "---------------------------------------------"
+    puts city[:city]
+    puts
+    city_page = agent.get("http://www.tebyan-masajed.ir/Modules/ShowmasajedInCity.aspx?CityId=#{city[:code]}")
 
-  doc = Nokogiri::HTML(city_page.body)
-  doc.encoding = 'utf-8'
-  rows = doc.xpath('//table[@dir="rtl"]/tr/td/a')
+    doc = Nokogiri::HTML(city_page.body)
+    doc.encoding = 'utf-8'
+    rows = doc.xpath('//table[@dir="rtl"]/tr/td/a')
 
-  rows.each do |row|
-    begin
-      mosque_page = agent.get("http://www.tebyan-masajed.ir/Modules/#{row.to_h['href']}")
-    rescue
-      errors << row.to_h['href']
-      next
+    rows.each do |row|
+      begin
+        mosque_page = agent.get("http://www.tebyan-masajed.ir/Modules/#{row.to_h['href']}")
+        mosque_page.encoding = 'utf-8'
+
+        name = mosque_page.title.gsub('پورتال', '').strip
+
+        detail = {state: city[:state], city: city[:city], name: name, code: row.to_h['href'].gsub('index.aspx?RegionId=', '')}
+
+        puts detail[:name]
+
+        all << detail
+      rescue
+        errors << row.to_h['href']
+        next
+      end
     end
-    mosque_page.encoding = 'utf-8'
 
-    name = mosque_page.title.gsub('پورتال', '').strip
+    CSV.open("#{root}/tcicpo168.csv", "a+") do |csv|
+    	all.each {|elem| csv << elem.values }
+    end
 
-    detail = {state: city[:state], city: city[:city], name: name, code: row.to_h['href'].gsub('index.aspx?RegionId=', '')}
-
-    puts detail[:name]
-
-    all << detail
-
+    CSV.open("#{root}/tcicpo168.error.log", "a+") do |csv|
+    	errors.each {|elem| csv << elem.values }
+    end
+  rescue => ex
+    CSV.open("#{root}/tcicpo168.error.city.csv", "a+") do |csv|
+    	csv << [city[:code], ex.message]
+    end
   end
-
-  CSV.open("/tmp/results/tcicpo168.csv", "a+") do |csv|
-  	all.each {|elem| csv << elem.values }
-  end
-
-  CSV.open("/tmp/results/tcicpo168.error.log", "a+") do |csv|
-  	errors.each {|elem| csv << elem.values }
-  end
-
 end
