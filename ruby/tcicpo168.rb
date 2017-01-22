@@ -53,8 +53,6 @@ if cities.length == 0
   end
 end
 
-p cities
-
 Parallel.each(cities, :in_processes => 10) do |city|
   begin
     all = []
@@ -94,8 +92,8 @@ Parallel.each(cities, :in_processes => 10) do |city|
     if errors.length > 0
       CSV.open("#{root}/tcicpo168-#{city[:code]}.error.log", "w") do |csv|
       	errors.each {|elem| csv << elem.values }
-      # end
-  end
+      end
+    end
   rescue => ex
     CSV.open("#{root}/tcicpo168-#{city[:code]}.error.city.csv", "w") do |csv|
     	csv << [city[:code], ex.message]
