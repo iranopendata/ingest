@@ -3,6 +3,7 @@ require 'mechanize'
 require 'json'
 require 'csv'
 require 'logger'
+require 'parallel'
 
 agent = Mechanize.new { |agent|
   agent.open_timeout   = 15
@@ -10,35 +11,51 @@ agent = Mechanize.new { |agent|
 }
 # agent.log = Logger.new(STDOUT)
 
-root = "/tmp/results"
-# root = "/Users/babak/Development/Source/smallmedia/tmp"
-
-# retirive city codes
-search_page = agent.get('http://www.tebyan-masajed.ir/')
-
-search_form = search_page.form('f1')
-c = search_form.field_with(:id => 'ParentID').options.count
+# root = "/tmp/results"
+root = "/Users/babak/Development/Source/smallmedia/tmp"
 
 cities = []
 
-for i in 1..(c - 1) do
-  state_select = search_form.field_with(:id => 'ParentID').options[i]
-
-  state_select.select
-  puts state_select.text
-
-  page = agent.submit(search_form)
-  form = page.form('f1')
-
-  cc = form.field_with(:id => 'ParentID1').options
-
-
-  cc.each {|c| cities << {state: state_select.text, city: c.text, code: c.value} unless c.value == '0'}
-
+begin
+  cities_file = File.read("#{root}/tcicpo168_cities.json")
+  puts "Loading Cities"
+  cities = JSON.parse(cities_file, {:symbolize_names => true})
+rescue
 end
 
+if cities.length == 0
+  # retirive city codes
+  search_page = agent.get('http://www.tebyan-masajed.ir/')
 
-cities.each do |city|
+  search_form = search_page.form('f1')
+  c = search_form.field_with(:id => 'ParentID').options.count
+
+  cities = []
+
+  for i in 1..(c - 1) do
+    state_select = search_form.field_with(:id => 'ParentID').options[i]
+
+    state_select.select
+    puts state_select.text
+
+    page = agent.submit(search_form)
+    form = page.form('f1')
+
+    cc = form.field_with(:id => 'ParentID1').options
+
+
+    cc.each {|c| cities << {state: state_select.text, city: c.text, code: c.value} unless c.value == '0'}
+
+  end
+
+  File.open("#{root}/tcicpo168_cities.json","w") do |f|
+    f.write(cities.to_json)
+  end
+end
+
+p cities
+
+Parallel.each(cities, :in_processes => 10) do |city|
   begin
     all = []
     errors =[]
@@ -70,16 +87,17 @@ cities.each do |city|
       end
     end
 
-    CSV.open("#{root}/tcicpo168.csv", "a+") do |csv|
+    CSV.open("#{root}/tcicpo168-#{city[:code]}.csv", "w") do |csv|
     	all.each {|elem| csv << elem.values }
     end
 
-    CSV.open("#{root}/tcicpo168.error.log", "a+") do |csv|
+    CSV.open("#{root}/tcicpo168-#{city[:code]}.error.log", "w") do |csv|
     	errors.each {|elem| csv << elem.values }
     end
   rescue => ex
-    CSV.open("#{root}/tcicpo168.error.city.csv", "a+") do |csv|
+    CSV.open("#{root}/tcicpo168-#{city[:code]}.error.city.csv", "w") do |csv|
     	csv << [city[:code], ex.message]
     end
   end
+
 end
