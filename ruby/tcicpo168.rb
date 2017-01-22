@@ -11,8 +11,8 @@ agent = Mechanize.new { |agent|
 }
 # agent.log = Logger.new(STDOUT)
 
-# root = "/tmp/results"
-root = "/Users/babak/Development/Source/smallmedia/tmp"
+root = "/tmp/results"
+# root = "/Users/babak/Development/Source/smallmedia/tmp"
 
 cities = []
 
@@ -91,9 +91,11 @@ Parallel.each(cities, :in_processes => 10) do |city|
     	all.each {|elem| csv << elem.values }
     end
 
-    CSV.open("#{root}/tcicpo168-#{city[:code]}.error.log", "w") do |csv|
-    	errors.each {|elem| csv << elem.values }
-    end
+    if errors.length > 0
+      CSV.open("#{root}/tcicpo168-#{city[:code]}.error.log", "w") do |csv|
+      	errors.each {|elem| csv << elem.values }
+      # end
+  end
   rescue => ex
     CSV.open("#{root}/tcicpo168-#{city[:code]}.error.city.csv", "w") do |csv|
     	csv << [city[:code], ex.message]
